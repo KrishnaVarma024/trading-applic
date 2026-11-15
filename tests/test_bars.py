@@ -59,3 +59,12 @@ def test_huge_gap_is_not_filled():
 def test_rejects_bad_interval():
     with pytest.raises(ValueError):
         BarBuilder(0)
+
+
+def test_live_mode_drops_the_partial_first_bar_only():
+    b = BarBuilder(M, skip_first_bar=True)
+    b.update(trade(1, T0 + 30_000, 100.0))            # joined mid-minute
+    assert b.update(trade(2, T0 + M + 1, 101.0)) == []
+    (bar,) = b.update(trade(3, T0 + 2 * M + 1, 102.0))
+    assert bar.start_ms == T0 + M and bar.open == 101.0
+    assert b.stats.partial_dropped == 1

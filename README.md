@@ -43,7 +43,7 @@ no clock, no I/O, so the same trades always produce the same bars.
 
 ```bash
 uv sync
-uv run pytest -q                                              # 20 tests, no network needed
+uv run pytest -q                                              # 21 tests, no network needed
 uv run python -m tradingapp replay tests/fixtures/sample_trades.jsonl
 uv run python -m tradingapp live --symbol btcusdt --interval 60 --save-ticks
 ```
@@ -62,6 +62,8 @@ network, pass another with `--ws-base`.
 - **Quiet minutes become explicit empty bars** carrying the last close, so the
   bar series has no holes and realized volatility in phase 2 sees a zero return
   instead of a missing row. A gap longer than 1,440 bars is counted, not filled.
+- **The first live bar is dropped.** The stream is joined mid-interval, so that
+  bar is missing its early trades. It is counted in `partial_dropped`, not written.
 - **Trade ids detect loss.** Ids increase by one, so after a reconnect the
   pipeline knows exactly how many trades it missed and logs it.
 - **Counters over silence.** Every dropped, duplicated, late or rejected message

@@ -15,16 +15,20 @@ from .models import Bar, Trade
 @dataclass
 class BarStats:
     late_dropped: int = 0      # trades older than the open bar
+    partial_dropped: int = 0   # first bar after start, which began mid-interval
     empty_bars: int = 0        # bars emitted with no trades
     unfilled_gaps: int = 0     # gaps too long to fill with empty bars
 
 
 class BarBuilder:
-    def __init__(self, interval_ms: int, max_fill_bars: int = 1440) -> None:
+    def __init__(self, interval_ms: int, max_fill_bars: int = 1440, skip_first_bar: bool = False) -> None:
         if interval_ms <= 0:
             raise ValueError("interval_ms must be positive")
         self.interval_ms = interval_ms
         self.max_fill_bars = max_fill_bars
+        # A live stream is joined mid-interval, so the first bar is missing its
+        # early trades. Emitting it would put a wrong open and volume on disk.
+        self._skip_next_close = skip_first_bar
         self.stats = BarStats()
         self._start: int | None = None
         self._o = self._h = self._l = self._c = 0.0
@@ -72,7 +76,12 @@ class BarBuilder:
             self._n += 1
             return []
 
-        closed = [self._snapshot()]
+        if self._skip_next_close:
+            self._skip_next_close = False
+            self.stats.partial_dropped += 1
+            closed = []
+        else:
+            closed = [self._snapshot()]
         skipped = (bucket - self._start) // self.interval_ms - 1
         if 0 < skipped <= self.max_fill_bars:
             last_close = self._c

@@ -16,8 +16,9 @@ class Pipeline:
         symbol: str = "symbol",
         save_ticks: bool = False,
         on_bar: Callable[[Bar], None] | None = None,
+        skip_first_bar: bool = False,
     ) -> None:
-        self.builder = BarBuilder(interval_ms)
+        self.builder = BarBuilder(interval_ms, skip_first_bar=skip_first_bar)
         self.on_bar = on_bar
         self.bars_emitted = 0
         self._bar_sink = self._tick_sink = None

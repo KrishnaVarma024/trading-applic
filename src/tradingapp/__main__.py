@@ -28,7 +28,8 @@ def print_bar(bar: Bar) -> None:
 
 async def run_live(args: argparse.Namespace) -> None:
     stats = IngestStats()
-    pipeline = Pipeline(args.interval * 1000, args.data_dir, args.symbol, args.save_ticks, print_bar)
+    pipeline = Pipeline(args.interval * 1000, args.data_dir, args.symbol, args.save_ticks, print_bar,
+                        skip_first_bar=True)
     url = trade_stream_url(args.symbol, args.ws_base)
     task = asyncio.current_task()
     loop = asyncio.get_running_loop()

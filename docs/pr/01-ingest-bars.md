@@ -18,7 +18,7 @@ written to CSV.
 
 ## How it was tested
 
-20 tests, no network required:
+21 tests, no network required:
 
 - Parser: valid trade, non-trade messages, seven kinds of broken input.
 - Bars: OHLCV and VWAP, boundary alignment, empty bars, late trades, huge gaps.
@@ -28,11 +28,13 @@ written to CSV.
 - Pipeline: replay of a 400-message fixture checks that volume and trade count
   are conserved across bars and that the CSV matches.
 
-## Not verified in this PR
+## Live run
 
-The live exchange endpoint was not reachable from the build environment, so the
-live path has only run against a local server and synthetic messages in the
-documented format. The first live run goes in `BENCH.md`.
+A 25-minute run against the live BTCUSDT stream on the author's machine ingested
+about 50,000 trades with no disconnects, gaps or parse errors. That run exposed
+one defect, fixed in this PR: the first bar after start was emitted although it
+began mid-minute. Live mode now drops it and counts it in `partial_dropped`.
+Details are in `BENCH.md`.
 
 ## Known limits
 
