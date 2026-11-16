@@ -7,8 +7,8 @@ measured tick-to-forecast latency.
 | Phase | Branch | What it adds | Status |
 | --- | --- | --- | --- |
 | 1 | `phase/01-ingest-bars` | WebSocket ingest, reconnects, gap detection, bar builder, CSV storage | merged |
-| 2 | `phase/02-research-eval` | Baselines (persistence, EWMA, HAR-RV), walk-forward harness, QLIKE, leakage check | this PR |
-| 3 | `phase/03-model` | Gradient-boosted forecast, comparison against each baseline | planned |
+| 2 | `phase/02-research-eval` | Baselines (persistence, EWMA, HAR-RV), walk-forward harness, QLIKE, leakage check | merged |
+| 3 | `phase/03-model` | log-HAR plus boosted trees, development/test split, ablation | this PR |
 | 4 | `phase/04-live-latency` | Live per-bar inference, per-stage latency histogram | planned |
 
 ## Phase 1 architecture
@@ -43,7 +43,7 @@ no clock, no I/O, so the same trades always produce the same bars.
 
 ```bash
 uv sync
-uv run pytest -q                                              # 37 tests, no network needed
+uv run pytest -q                                              # 44 tests, no network needed
 uv run python -m tradingapp replay tests/fixtures/sample_trades.jsonl
 uv run python -m tradingapp live --symbol btcusdt --interval 60 --save-ticks
 ```
@@ -229,3 +229,129 @@ otherwise.
   are not modelled, since this market does not close.
 - Evaluation uses non-overlapping hours. Phase 4 forecasts on every bar and
   will need its own evaluation.
+
+---
+
+# Phase 3: the model
+
+## Question
+
+Phase 2 set the bar: log-HAR at a 15.5% QLIKE reduction over a tuned EWMA.
+Can a model beat log-HAR on data that played no part in building it?
+
+## Design
+
+```
+hourly series (RV, return, semivariance, volume, trade count)
+      |
+      v
+ features_ext.build_matrix --- 14 features, each from hours <= the origin
+      |
+      v
+ models.HarGbm
+      stage 1: log-HAR, linear        carries the level, can extrapolate
+      stage 2: boosted trees          predict stage 1's residual from all 14 features
+      forecast = exp(stage 1 + stage 2 + half the residual variance)
+      |
+      v
+ evaluate_model --- walk-forward, then scored on two separate periods
+      development: 2026-01-06 to 2026-04-30   choices may be made here
+      test:        2026-05-01 to 2026-10-31   scored at the end
+```
+
+Why two stages: trees predict by averaging training targets in a leaf, so they
+cannot forecast a variance higher than any they have seen. The linear stage
+can. Letting the trees correct a linear model keeps that property.
+
+The trees are scikit-learn's `HistGradientBoostingRegressor`, the same family
+as LightGBM, chosen because it needs no extra native library to install.
+
+## Reproduce
+
+```bash
+uv run python -m tradingapp.research.evaluate_model --symbol BTCUSDT
+```
+
+About 30 seconds. `--dev-only` scores the development period without touching
+the test period.
+
+## Results
+
+Test period, 4,415 hours from 2026-05-01 to 2026-10-31. Intervals are 95%
+block-bootstrap; p-values are Diebold-Mariano.
+
+| Model | QLIKE | vs tuned EWMA | vs log-HAR | vs seasonal log-HAR |
+| --- | --- | --- | --- | --- |
+| EWMA (tuned) | 0.3842 | | | |
+| log-HAR | 0.3241 | +15.7% (+11.8% to +19.2%) | | |
+| Seasonal log-HAR | 0.3127 | +18.6% (+15.3% to +21.6%) | +3.5% (+1.5% to +5.3%) | |
+| log-HAR + trees | 0.2860 | +25.6% (+22.4% to +29.2%) | +11.8% (+7.7% to +15.4%) | +8.6% (+5.4% to +11.8%) |
+
+The development period gave +10.1% over log-HAR (+3.4% to +15.9%), so the test
+result is in line with it and not a lucky draw.
+
+## Where the gain comes from
+
+Ablation on the development period only, removing one feature group at a time:
+
+| Removed | QLIKE | vs log-HAR |
+| --- | --- | --- |
+| nothing | 0.2848 | +10.1% |
+| time of day and weekend | 0.3210 | -1.3% |
+| volume and trade count | 0.2845 | +10.2% |
+| returns and semivariance | 0.2878 | +9.2% |
+| 4-hour and 12-hour variance | 0.2909 | +8.2% |
+
+Almost all of the gain is the time-of-day and weekend pattern. Without it the
+trees are no better than log-HAR. Volume and trade count add nothing once
+variance itself is in the model. So the plain reading is: hourly volatility in
+this market has a strong daily rhythm, and the trees learn its shape. A linear
+model given the same rhythm as one sine wave recovers about a third of the
+gain (the seasonal log-HAR row). The rest is the shape being more complicated
+than one sine wave, or interactions, and this phase does not separate the two.
+
+## What was and was not tuned
+
+- The tree settings are the first ones tried. Nothing was tuned on either period.
+- The feature list was written before any score was seen and not changed.
+- The ablation used the development period only.
+- The test period was scored twice with the model unchanged: once for the
+  main table, and once more to add the seasonal log-HAR row. That baseline was
+  added after seeing the first test result, to check whether a simpler model
+  explained it. An added baseline can only weaken the model's claim, not help it.
+
+## Tests added
+
+- `test_feature_matrix_shape_and_no_look_ahead` and
+  `test_model_walk_forward_cannot_see_the_future`: corrupt the future, require
+  earlier features and forecasts to be bit-for-bit unchanged.
+- `test_model_learns_a_pattern_har_cannot_express`: on simulated data with a
+  planted daily rhythm, the model must beat log-HAR by at least 5%.
+- `test_model_does_not_invent_signal_where_there_is_none`: on simulated data
+  with no extra structure, it must not be more than 5% worse.
+
+## The four production questions, for the model
+
+**100x data?** Refitting daily costs about 30 seconds a year of hourly data,
+dominated by tree fitting. At 100 symbols, refit weekly or fit incrementally.
+
+**A malicious or corrupt input?** A corrupt volume or variance value in the
+latest hour reaches the trees as an out-of-range feature. Trees clamp it to the
+nearest leaf, so the correction stays bounded, but the linear stage does not:
+a wildly wrong last-hour variance moves the forecast in proportion. Phase 4
+needs an input sanity check before inference.
+
+**Network dies?** Not applicable offline. Live, a missing hour means stale
+features. Phase 4 must decide whether to forecast on stale inputs or abstain.
+
+**How would I know it broke?** Track live QLIKE of the model against log-HAR
+on a rolling window. If the model stops beating its own first stage, the trees
+have gone stale or the daily rhythm has changed.
+
+## Known limits of phase 3
+
+- One symbol, one year. The daily rhythm may differ in another year or market.
+- The seasonal linear baseline uses one sine wave. A linear model with a
+  separate term per hour was not run and could close more of the gap.
+- No hyperparameter search. The model may be better or worse than a tuned one.
+- QLIKE gains are not profits. Nothing here tests a trading use.
