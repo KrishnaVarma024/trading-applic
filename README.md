@@ -217,9 +217,9 @@ prices in it are right.
 verified stay; rerunning skips them and resumes.
 
 **How would I know the evaluation is wrong?** The three tests above fail. Beyond
-that, a QLIKE reduction far outside the 10 to 20% range reported for this kind
-of forecast, or direction accuracy from volatility features far from 50%,
-should be treated as a bug until shown otherwise.
+that, a QLIKE reduction much larger than log-HAR's, or direction accuracy from
+volatility features far from 50%, should be treated as a bug until shown
+otherwise.
 
 ## Known limits of phase 2
 
