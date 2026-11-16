@@ -3,7 +3,11 @@ name = "tradingapp"
 version = "0.1.0"
 description = "Live market-data pipeline: ticks -> bars -> realized-volatility forecast"
 requires-python = ">=3.10"
-dependencies = ["websockets>=15.0"]
+dependencies = [
+    "numpy>=2.2.6",
+    "scikit-learn>=1.7.2",
+    "websockets>=15.0",
+]
 
 [dependency-groups]
 dev = ["pytest>=8.0"]
