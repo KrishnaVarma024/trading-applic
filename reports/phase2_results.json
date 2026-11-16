@@ -1,0 +1,78 @@
+{
+  "symbol": "BTCUSDT",
+  "data": {
+    "minutes": 525600,
+    "first_day": "2025-11-01",
+    "last_day": "2026-10-31",
+    "missing_minutes": 0,
+    "hours_used": 8760,
+    "hours_dropped": 0
+  },
+  "setup": {
+    "target": "realized variance of the next hour, from 1-minute log returns",
+    "initial_train_days": 60,
+    "refit_every_hours": 24,
+    "eval_hours": 7152,
+    "eval_first_day": "2026-01-06",
+    "eval_last_day": "2026-10-31"
+  },
+  "models": {
+    "persistence": {
+      "qlike": 0.4470749459071513,
+      "rmse": 4.170066497835773e-05,
+      "qlike_reduction_vs_ewma": -0.175320381332416,
+      "reduction_ci95": [
+        -0.22435148213851178,
+        -0.13105327686502924
+      ],
+      "dm_stat_vs_ewma": 6.387458133443396,
+      "dm_p_vs_ewma": 1.6866576429075004e-10
+    },
+    "ewma": {
+      "qlike": 0.38038559784041137,
+      "rmse": 3.637537143512138e-05,
+      "final_lambda": 0.54
+    },
+    "har": {
+      "qlike": 0.36099850277648987,
+      "rmse": 3.5363912201274634e-05,
+      "qlike_reduction_vs_ewma": 0.05096695346508684,
+      "reduction_ci95": [
+        -0.021169766550917832,
+        0.1238500905228166
+      ],
+      "dm_stat_vs_ewma": -1.3285632376954628,
+      "dm_p_vs_ewma": 0.18399210734484392
+    },
+    "har_log": {
+      "qlike": 0.3212926195545848,
+      "rmse": 3.506759313379945e-05,
+      "qlike_reduction_vs_ewma": 0.15535019890689628,
+      "reduction_ci95": [
+        0.12844235796165196,
+        0.18343799274352265
+      ],
+      "dm_stat_vs_ewma": -8.563700608334353,
+      "dm_p_vs_ewma": 1.093014365812004e-17
+    }
+  },
+  "direction_check": {
+    "accuracy": 0.49524608501118567,
+    "ci95": [
+      0.483664169088873,
+      0.5068331051940009
+    ],
+    "n": 7152,
+    "majority_baseline": 0.5023769574944071
+  },
+  "past_returns_diagnostic": {
+    "accuracy": 0.5220917225950783,
+    "ci95": [
+      0.5105061787010537,
+      0.5336535466902964
+    ],
+    "n": 7152,
+    "majority_baseline": 0.5023769574944071,
+    "sign_flip_rate": 0.5232102908277405
+  }
+}
