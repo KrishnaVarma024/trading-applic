@@ -64,3 +64,20 @@ Test period, 4,415 hours, 2026-05-01 to 2026-10-31:
 
 Reproduced on the author's MacBook Pro (Python 3.12, scikit-learn 1.9.1) on
 2026-11-16 with identical output.
+
+## Phase 4: tick-to-forecast latency
+
+In-process only: raw message in hand to forecast value ready. Excludes network,
+exchange and socket handling. Numbers below must come from the author's machine.
+
+### Replay benchmark
+
+Command: `uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv`
+
+(paste the table the command prints, and the line above it)
+
+### Live run
+
+Command: `uv run python -m tradingapp.live.forecast`, stopped with Ctrl-C after at least an hour.
+
+(paste the table printed on exit, the run duration, and the number of forecasts)
