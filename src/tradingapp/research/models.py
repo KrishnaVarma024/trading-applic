@@ -95,3 +95,61 @@ class HarLog(Har):
     def predict(self, ds: Dataset, rows: slice) -> np.ndarray:
         # exp(mean of log) underestimates the mean; half the residual variance corrects it.
         return np.exp(self._x(ds, rows) @ self.beta + 0.5 * self.resid_var)
+
+
+class HarGbm:
+    """log-HAR plus gradient-boosted trees on what log-HAR gets wrong.
+
+    Stage 1 is the linear log-HAR fit. Stage 2 is a boosted-tree model trained
+    to predict stage 1's residual from a wider feature set. Trees cannot
+    extrapolate beyond the range they were trained on, so the linear stage
+    carries the level and the trees only add corrections.
+    """
+    name = "har_gbm"
+
+    def __init__(self, x: np.ndarray, **gbm_params) -> None:
+        from sklearn.ensemble import HistGradientBoostingRegressor
+        self.x = x
+        self.har = HarLog()
+        params = dict(max_iter=150, learning_rate=0.05, max_depth=3, min_samples_leaf=40,
+                      l2_regularization=1.0, early_stopping=False, random_state=0)
+        params.update(gbm_params)
+        self._make = lambda: HistGradientBoostingRegressor(**params)
+        self.gbm = None
+        self.resid_var = 0.0
+
+    def fit(self, ds: Dataset, end: int) -> None:
+        self.har.fit(ds, end)
+        rows = slice(0, end)
+        linear = HarLog._x(ds, rows) @ self.har.beta
+        resid = np.log(ds.y[:end]) - linear
+        self.gbm = self._make().fit(self.x[:end], resid)
+        self.resid_var = float(np.var(resid - self.gbm.predict(self.x[:end])))
+
+    def predict(self, ds: Dataset, rows: slice) -> np.ndarray:
+        linear = HarLog._x(ds, rows) @ self.har.beta
+        return np.exp(linear + self.gbm.predict(self.x[rows]) + 0.5 * self.resid_var)
+
+
+class HarLogSeasonal(HarLog):
+    """log-HAR plus time-of-day and weekend terms, still a plain linear regression.
+
+    This is the fair opponent for the tree model. If most of the trees' gain is
+    seasonality, this model will recover it with three extra coefficients.
+    """
+    name = "har_log_seasonal"
+
+    def __init__(self, seasonal: np.ndarray) -> None:
+        super().__init__()
+        self.seasonal = seasonal        # columns: hour_sin, hour_cos, weekend
+
+    def _xs(self, ds: Dataset, rows: slice) -> np.ndarray:
+        return np.column_stack([HarLog._x(ds, rows), self.seasonal[rows]])
+
+    def fit(self, ds: Dataset, end: int) -> None:
+        x, ly = self._xs(ds, slice(0, end)), np.log(ds.y[:end])
+        self.beta, *_ = np.linalg.lstsq(x, ly, rcond=None)
+        self.resid_var = float(np.var(ly - x @ self.beta))
+
+    def predict(self, ds: Dataset, rows: slice) -> np.ndarray:
+        return np.exp(self._xs(ds, rows) @ self.beta + 0.5 * self.resid_var)

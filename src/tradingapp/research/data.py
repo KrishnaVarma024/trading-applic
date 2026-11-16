@@ -23,10 +23,12 @@ def _to_ms(ts: int) -> int:
     return ts // 1000 if ts > 10**14 else ts
 
 
-def load_minutes(directory: str | Path, symbol: str) -> tuple[np.ndarray, np.ndarray]:
-    """Return (open_time_ms, close) for every 1-minute kline, sorted and de-duplicated."""
+def load_klines(directory: str | Path, symbol: str) -> dict[str, np.ndarray]:
+    """Return open_time_ms, close, volume and trade count for every 1-minute kline."""
     times: list[int] = []
     closes: list[float] = []
+    vols: list[float] = []
+    counts: list[float] = []
     files = sorted(Path(directory).glob(f"{symbol}-1m-*.zip"))
     if not files:
         raise FileNotFoundError(f"no {symbol} kline archives in {directory}; run the downloader first")
@@ -38,12 +40,20 @@ def load_minutes(directory: str | Path, symbol: str) -> tuple[np.ndarray, np.nda
                         continue  # header line in some archive vintages
                     times.append(_to_ms(int(row[0])))
                     closes.append(float(row[4]))
+                    vols.append(float(row[5]))
+                    counts.append(float(row[8]))
     t = np.asarray(times, dtype=np.int64)
-    c = np.asarray(closes, dtype=np.float64)
     order = np.argsort(t, kind="stable")
-    t, c = t[order], c[order]
+    t = t[order]
     keep = np.concatenate(([True], np.diff(t) > 0))
-    return t[keep], c[keep]
+    pick = lambda xs: np.asarray(xs, dtype=np.float64)[order][keep]
+    return {"t_ms": t[keep], "close": pick(closes), "volume": pick(vols), "trades": pick(counts)}
+
+
+def load_minutes(directory: str | Path, symbol: str) -> tuple[np.ndarray, np.ndarray]:
+    """Return (open_time_ms, close) for every 1-minute kline, sorted and de-duplicated."""
+    k = load_klines(directory, symbol)
+    return k["t_ms"], k["close"]
 
 
 @dataclass
@@ -53,9 +63,15 @@ class Hourly:
     ret: np.ndarray        # log return over the hour
     dropped_hours: int     # hours discarded for missing minutes
     missing_minutes: int
+    rs_neg: np.ndarray | None = None    # variance from negative returns only
+    volume: np.ndarray | None = None    # traded quantity in the hour
+    trades: np.ndarray | None = None    # number of trades in the hour
 
 
-def to_hourly(t_ms: np.ndarray, close: np.ndarray, min_minutes: int = 58) -> Hourly:
+def to_hourly(
+    t_ms: np.ndarray, close: np.ndarray, min_minutes: int = 58,
+    volume: np.ndarray | None = None, trades: np.ndarray | None = None,
+) -> Hourly:
     gaps = np.diff(t_ms) // MINUTE_MS - 1
     missing = int(gaps[gaps > 0].sum())
 
@@ -69,6 +85,16 @@ def to_hourly(t_ms: np.ndarray, close: np.ndarray, min_minutes: int = 58) -> Hou
     uniq, first, counts = np.unique(hour, return_index=True, return_counts=True)
     rv = np.add.reduceat(r * r, first)
     ret = np.add.reduceat(r, first)
+    rs_neg = np.add.reduceat(np.where(r < 0, r * r, 0.0), first)
+
+    def per_hour(x: np.ndarray | None) -> np.ndarray | None:
+        if x is None:
+            return None
+        h_all, f_all = np.unique(t_ms // HOUR_MS, return_index=True)
+        sums = np.add.reduceat(x, f_all)
+        return sums[np.searchsorted(h_all, uniq)]
+
+    vol_h, trades_h = per_hour(volume), per_hour(trades)
 
     full = counts >= min_minutes
     # Dropped hours leave a small discontinuity: the row after a dropped hour
@@ -78,4 +104,7 @@ def to_hourly(t_ms: np.ndarray, close: np.ndarray, min_minutes: int = 58) -> Hou
         start_ms=(uniq[full] * HOUR_MS).astype(np.int64),
         rv=rv[full], ret=ret[full],
         dropped_hours=int((~full).sum()), missing_minutes=missing,
+        rs_neg=rs_neg[full],
+        volume=None if vol_h is None else vol_h[full],
+        trades=None if trades_h is None else trades_h[full],
     )

@@ -130,7 +130,8 @@ def main() -> None:
     result = run(args.data_dir, args.symbol, args.initial_days, args.refit_hours)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "phase2_results.json").write_text(json.dumps(result, indent=2) + "\n")
+    from .evaluate_model import _round
+    (out / "phase2_results.json").write_text(json.dumps(_round(result), indent=2) + "\n")
     md = to_markdown(result)
     (out / "phase2.md").write_text(md)
     print(md)

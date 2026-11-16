@@ -1,0 +1,162 @@
+{
+  "symbol": "BTCUSDT",
+  "setup": {
+    "initial_train_days": 60,
+    "refit_every_hours": 24,
+    "test_start": "2026-05-01",
+    "dev_hours": 2737,
+    "test_hours": 4415,
+    "features": [
+      "log_rv_h",
+      "log_rv_d",
+      "log_rv_w",
+      "log_rv_4h",
+      "log_rv_12h",
+      "neg_share",
+      "ret_h",
+      "abs_ret_h",
+      "log_volume_h",
+      "log_volume_rel",
+      "log_trades_h",
+      "hour_sin",
+      "hour_cos",
+      "weekend"
+    ]
+  },
+  "development": {
+    "ewma": {
+      "qlike": 0.3741607544
+    },
+    "har_log": {
+      "qlike": 0.3168407866,
+      "vs_ewma": {
+        "qlike_reduction": 0.1531960986,
+        "ci95": [
+          0.1136601708,
+          0.1887071026
+        ],
+        "dm_stat": -6.029863986,
+        "dm_p": 1.640977277e-09
+      }
+    },
+    "har_log_seasonal": {
+      "qlike": 0.3101842272,
+      "vs_ewma": {
+        "qlike_reduction": 0.1709867388,
+        "ci95": [
+          0.1345933242,
+          0.2050090997
+        ],
+        "dm_stat": -7.422330967,
+        "dm_p": 1.150768082e-13
+      },
+      "vs_har_log": {
+        "qlike_reduction": 0.02100916179,
+        "ci95": [
+          -0.003174354089,
+          0.04479563751
+        ],
+        "dm_stat": -1.710524888,
+        "dm_p": 0.08716885522
+      }
+    },
+    "har_gbm": {
+      "qlike": 0.2847564903,
+      "vs_ewma": {
+        "qlike_reduction": 0.2389461295,
+        "ci95": [
+          0.173536172,
+          0.2974717404
+        ],
+        "dm_stat": -7.293719893,
+        "dm_p": 3.015119722e-13
+      },
+      "vs_har_log": {
+        "qlike_reduction": 0.1012631505,
+        "ci95": [
+          0.03445131453,
+          0.1587896048
+        ],
+        "dm_stat": -3.383926592,
+        "dm_p": 0.0007145710558
+      },
+      "vs_har_log_seasonal": {
+        "qlike_reduction": 0.08197624081,
+        "ci95": [
+          0.0195712606,
+          0.1343457585
+        ],
+        "dm_stat": -2.869916787,
+        "dm_p": 0.004105798338
+      }
+    }
+  },
+  "test": {
+    "ewma": {
+      "qlike": 0.3842445778
+    },
+    "har_log": {
+      "qlike": 0.3240524535,
+      "vs_ewma": {
+        "qlike_reduction": 0.1566505496,
+        "ci95": [
+          0.1182832184,
+          0.191699243
+        ],
+        "dm_stat": -6.179023652,
+        "dm_p": 6.449923336e-10
+      }
+    },
+    "har_log_seasonal": {
+      "qlike": 0.3127052702,
+      "vs_ewma": {
+        "qlike_reduction": 0.186181697,
+        "ci95": [
+          0.1534672385,
+          0.2164325141
+        ],
+        "dm_stat": -7.800204092,
+        "dm_p": 6.180713356e-15
+      },
+      "vs_har_log": {
+        "qlike_reduction": 0.03501650161,
+        "ci95": [
+          0.0147896054,
+          0.05322998635
+        ],
+        "dm_stat": -3.414879376,
+        "dm_p": 0.0006381026323
+      }
+    },
+    "har_gbm": {
+      "qlike": 0.2859532571,
+      "vs_ewma": {
+        "qlike_reduction": 0.2558040538,
+        "ci95": [
+          0.2242171314,
+          0.2923242616
+        ],
+        "dm_stat": -11.15149932,
+        "dm_p": 7.040984432e-29
+      },
+      "vs_har_log": {
+        "qlike_reduction": 0.1175710783,
+        "ci95": [
+          0.07738418216,
+          0.1544038812
+        ],
+        "dm_stat": -6.466270071,
+        "dm_p": 1.00451482e-10
+      },
+      "vs_har_log_seasonal": {
+        "qlike_reduction": 0.08555024701,
+        "ci95": [
+          0.05439404179,
+          0.1176493437
+        ],
+        "dm_stat": -6.06764517,
+        "dm_p": 1.297992778e-09
+      }
+    }
+  }
+}

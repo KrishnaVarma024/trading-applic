@@ -48,3 +48,20 @@ Direction check on model features: 49.5% (CI 48.4% to 50.7%), n = 7,152.
 
 First produced in the build environment on 2026-11-16. Rerun on your own
 machine and confirm the table matches before quoting it.
+
+## Phase 3: model evaluation
+
+Command: `uv run python -m tradingapp.research.evaluate_model --symbol BTCUSDT`
+Full output: `reports/phase3.md`, `reports/phase3_results.json`.
+
+Test period, 4,415 hours, 2026-05-01 to 2026-10-31:
+
+| Model | QLIKE | vs tuned EWMA | vs log-HAR |
+| --- | --- | --- | --- |
+| EWMA (tuned) | 0.3842 | | |
+| log-HAR | 0.3241 | +15.7% | |
+| Seasonal log-HAR | 0.3127 | +18.6% | +3.5% |
+| log-HAR + trees | 0.2860 | +25.6% (CI 22.4% to 29.2%) | +11.8% (CI 7.7% to 15.4%) |
+
+First produced in the build environment on 2026-11-16. Rerun on your own
+machine and confirm before quoting.
