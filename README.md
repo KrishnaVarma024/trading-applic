@@ -285,9 +285,9 @@ block-bootstrap; p-values are Diebold-Mariano.
 | EWMA (tuned) | 0.3842 | | | |
 | log-HAR | 0.3241 | +15.7% (+11.8% to +19.2%) | | |
 | Seasonal log-HAR | 0.3127 | +18.6% (+15.3% to +21.6%) | +3.5% (+1.5% to +5.3%) | |
-| log-HAR + trees | 0.2860 | +25.6% (+22.4% to +29.2%) | +11.8% (+7.7% to +15.4%) | +8.6% (+5.4% to +11.8%) |
+| log-HAR + trees | 0.2862 | +25.5% (+22.3% to +29.2%) | +11.7% (+7.7% to +15.3%) | +8.5% (+5.4% to +11.6%) |
 
-The development period gave +10.1% over log-HAR (+3.4% to +15.9%), so the test
+The development period gave +10.4% over log-HAR (+3.8% to +16.0%), so the test
 result is in line with it and not a lucky draw.
 
 ## Where the gain comes from
@@ -296,11 +296,11 @@ Ablation on the development period only, removing one feature group at a time:
 
 | Removed | QLIKE | vs log-HAR |
 | --- | --- | --- |
-| nothing | 0.2848 | +10.1% |
-| time of day and weekend | 0.3210 | -1.3% |
-| volume and trade count | 0.2845 | +10.2% |
-| returns and semivariance | 0.2878 | +9.2% |
-| 4-hour and 12-hour variance | 0.2909 | +8.2% |
+| nothing | 0.2840 | +10.4% |
+| time of day and weekend | 0.3208 | -1.3% |
+| volume and trade count | 0.2835 | +10.5% |
+| returns and semivariance | 0.2876 | +9.2% |
+| 4-hour and 12-hour variance | 0.2914 | +8.0% |
 
 Almost all of the gain is the time-of-day and weekend pattern. Without it the
 trees are no better than log-HAR. Volume and trade count add nothing once
@@ -309,6 +309,13 @@ this market has a strong daily rhythm, and the trees learn its shape. A linear
 model given the same rhythm as one sine wave recovers about a third of the
 gain (the seasonal log-HAR row). The rest is the shape being more complicated
 than one sine wave, or interactions, and this phase does not separate the two.
+
+## Reproducibility note
+
+The tree model's numbers depend on the scikit-learn version in the fourth
+decimal place. The figures here are from Python 3.12 with the versions in
+`uv.lock`, which the project now requires. The linear models are identical on
+any version.
 
 ## What was and was not tuned
 

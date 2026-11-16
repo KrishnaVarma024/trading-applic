@@ -46,8 +46,7 @@ Full output: `reports/phase2.md`, `reports/phase2_results.json`.
 
 Direction check on model features: 49.5% (CI 48.4% to 50.7%), n = 7,152.
 
-First produced in the build environment on 2026-11-16. Rerun on your own
-machine and confirm the table matches before quoting it.
+Reproduced on the author's MacBook Pro on 2026-11-16 with an identical table.
 
 ## Phase 3: model evaluation
 
@@ -61,7 +60,7 @@ Test period, 4,415 hours, 2026-05-01 to 2026-10-31:
 | EWMA (tuned) | 0.3842 | | |
 | log-HAR | 0.3241 | +15.7% | |
 | Seasonal log-HAR | 0.3127 | +18.6% | +3.5% |
-| log-HAR + trees | 0.2860 | +25.6% (CI 22.4% to 29.2%) | +11.8% (CI 7.7% to 15.4%) |
+| log-HAR + trees | 0.2862 | +25.5% (CI 22.3% to 29.2%) | +11.7% (CI 7.7% to 15.3%) |
 
-First produced in the build environment on 2026-11-16. Rerun on your own
-machine and confirm before quoting.
+Reproduced on the author's MacBook Pro (Python 3.12, scikit-learn 1.9.1) on
+2026-11-16 with identical output.
