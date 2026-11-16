@@ -310,6 +310,26 @@ model given the same rhythm as one sine wave recovers about a third of the
 gain (the seasonal log-HAR row). The rest is the shape being more complicated
 than one sine wave, or interactions, and this phase does not separate the two.
 
+## Follow-up: a stronger linear opponent
+
+After the results above, a linear log-HAR with a separate term for each hour
+of the day (23 indicator variables plus the weekend flag) was scored on the
+same periods. It is not in the code; it is assignment 3 of this phase.
+
+| Test period | QLIKE | vs log-HAR |
+| --- | --- | --- |
+| log-HAR | 0.3241 | |
+| log-HAR + hourly indicators | 0.2959 | +8.7% (+5.6% to +12.1%) |
+| log-HAR + trees | 0.2862 | +11.7% (+7.7% to +15.3%) |
+
+The trees beat this stronger linear model by 3.3% on the test period (+0.5%
+to +5.9%, p = 0.016) and by 1.7% on the development period, where the interval
+spans zero. So roughly three quarters of the trees' gain over log-HAR is a
+daily pattern that 24 plain coefficients capture. What the trees add beyond a
+well-specified linear model is small, about 3%, and only clearly present on
+one of the two periods. This was a third look at the test period, again to add
+a baseline.
+
 ## Reproducibility note
 
 The tree model's numbers depend on the scikit-learn version in the fourth
@@ -358,8 +378,8 @@ have gone stale or the daily rhythm has changed.
 ## Known limits of phase 3
 
 - One symbol, one year. The daily rhythm may differ in another year or market.
-- The seasonal linear baseline uses one sine wave. A linear model with a
-  separate term per hour was not run and could close more of the gap.
+- The seasonal linear baseline in the table uses one sine wave. See the
+  follow-up below for a stronger one.
 - No hyperparameter search. The model may be better or worse than a tuned one.
 - QLIKE gains are not profits. Nothing here tests a trading use.
 
