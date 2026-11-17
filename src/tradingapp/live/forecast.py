@@ -21,6 +21,7 @@ from .backfill import DEFAULT_REST_BASE, MINUTE_MS, fetch_klines
 from .core import Forecast, LiveForecaster
 from .engine import WEEK
 from .forecaster import Forecaster, pin_single_thread
+from .scheduling import request_interactive_qos
 
 log = logging.getLogger("tradingapp.live")
 FORECAST_HEADER = ["bar_end_ms", "rv_next_hour", "annualised_vol_pct", "degraded", "latency_us"]
@@ -32,7 +33,10 @@ def _utc(ms: int) -> str:
 
 async def run(args: argparse.Namespace) -> None:
     pin_single_thread()
-    forecaster = Forecaster.load(args.model)
+    if args.qos == "interactive":
+        log.info("scheduling: %s", request_interactive_qos())
+    forecaster = Forecaster.load(args.model).prepare(reference=args.reference_model)
+    log.info("inference: %s", "scikit-learn predict" if args.reference_model else "compiled trees")
     log.info("model: %s", forecaster.meta)
     bar_sink = DailyCsvSink(args.data_dir, f"{args.symbol}-bars-60s", BAR_HEADER)
     fc_sink = DailyCsvSink(args.data_dir, f"{args.symbol}-forecasts", FORECAST_HEADER)
@@ -72,6 +76,11 @@ async def run(args: argparse.Namespace) -> None:
                 klines = await asyncio.to_thread(
                     fetch_klines, args.symbol, first.start_ms - MINUTE_MS, WEEK + 1, args.rest_base)
                 live.join_history(klines, pending_first)
+                # Warm-up: run inference a few times on real features and discard the results,
+                # so the first timed forecast does not pay for first-call setup.
+                warm = live.engine._features(pending_first[-1].end_ms)
+                for _ in range(5):
+                    forecaster.predict(warm.har_logs, warm.x)
                 warmed = True
                 log.info("engine warm: %s; forecasting from the next bar close", live.engine.warm)
             if time.monotonic() - last_report >= args.report_every:
@@ -84,6 +93,7 @@ async def run(args: argparse.Namespace) -> None:
         fc_sink.close()
         if live.latency.count():
             live.latency.save(args.latency_out, mode="live", symbol=args.symbol, forecasts=live.forecasts,
+                              inference="sklearn" if args.reference_model else "compiled", qos=args.qos,
                               disconnects=stats.disconnects, missed_trades=stats.missed_trades)
             print("\n" + live.latency.to_markdown())
             log.info("latency summary written to %s", args.latency_out)
@@ -98,6 +108,9 @@ def main() -> None:
     p.add_argument("--rest-base", default=DEFAULT_REST_BASE)
     p.add_argument("--report-every", type=float, default=300.0)
     p.add_argument("--latency-out", default="reports/latency_live.json")
+    p.add_argument("--qos", choices=["interactive", "default"], default="interactive",
+                   help="macOS scheduling class for this process")
+    p.add_argument("--reference-model", action="store_true", help="use scikit-learn predict, not compiled trees")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     try:

@@ -141,3 +141,34 @@ Not controlled: other applications running on the Mac during the live run.
 How to confirm: replay the same ticks with an idle pause of about a second
 before each bar-closing trade. If replay latency rises to the live figure, the
 cause is idle-state behaviour, not the live network code.
+
+## Phase 5: compiled inference and the idle test
+
+### Build VM measurements
+
+Linux VM on the author's MacBook, 2026-11-17. Same hardware, but a different
+operating system and scheduler, so these are indicative only.
+
+| Replay | Inference | n | p50 | p90 | p99 |
+| --- | --- | --- | --- | --- | --- |
+| No idle | scikit-learn | 1,518 | 0.672 ms | 0.797 ms | 1.36 ms |
+| No idle | compiled | 1,518 | 0.051 ms | 0.068 ms | 0.100 ms |
+| 1 s idle before each bar close | scikit-learn | 120 | 4.80 ms | 5.81 ms | 17.8 ms |
+| 1 s idle before each bar close | compiled | 120 | 0.95 ms | 1.49 ms | 11.2 ms |
+
+Compiled inference agrees with scikit-learn on all 8,592 historical rows of
+the real model to a worst relative difference of 2.0e-15.
+
+### macOS measurements (to run on the author's machine)
+
+```
+uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --reference-model --out reports/bench_sklearn.json
+uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --out reports/bench_compiled.json
+uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --idle-ms 1000 --max-forecasts 120 --qos default --out reports/bench_idle_default.json
+uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --idle-ms 1000 --max-forecasts 120 --qos interactive --out reports/bench_idle_interactive.json
+uv run python -m tradingapp.live.forecast          # overnight, then Ctrl-C
+```
+
+The two idle runs are the test of the scheduling-class change: if
+`interactive` is not faster than `default`, the change does nothing on this
+machine and should be removed.
