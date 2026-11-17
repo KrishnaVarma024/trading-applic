@@ -38,15 +38,18 @@ In-process tick-to-forecast: from the raw message of the bar-closing trade
 arriving in the process to the forecast value existing. It excludes the
 network and the exchange.
 
-| Run | Machine | Inference | Forecasts | p50 | p90 |
-| --- | --- | --- | --- | --- | --- |
-| Replay | MacBook Pro, macOS | scikit-learn | 1,518 | 0.57 ms | 0.61 ms |
-| Live, 2 h 15 min | MacBook Pro, macOS | scikit-learn | 136 | 4.46 ms | 9.10 ms |
-| Replay | Linux VM, same MacBook | compiled | 1,518 | 0.05 ms | 0.07 ms |
-| Replay, 1 s idle before each bar | Linux VM, same MacBook | compiled | 120 | 0.95 ms | 1.49 ms |
+Measured on the author's MacBook Pro (Apple silicon, macOS):
 
-The live run had no disconnects, missed trades or engine resets. A macOS live
-run with compiled inference is pending and will replace the VM rows.
+| Run | Inference | Forecasts | p50 | p90 |
+| --- | --- | --- | --- | --- |
+| Replay | scikit-learn | 1,518 | 0.54 ms | 0.58 ms |
+| Replay | compiled | 1,518 | 0.05 ms | 0.07 ms |
+| Replay, 1 s idle before each bar | compiled | 120 | 0.73 ms | 1.08 ms |
+| Live, 2 h 15 min | scikit-learn | 136 | 4.46 ms | 9.10 ms |
+
+The live run had no disconnects, missed trades or engine resets. A live run
+with compiled inference is pending; the idle replay is the best estimate of it
+until then.
 
 ## Findings
 
@@ -65,11 +68,14 @@ run with compiled inference is pending and will replace the VM rows.
 4. **Live latency was an idle-state problem, not a code problem.** Live, every
    stage ran 7 to 42 times slower than in replay, including parsing, which does
    no I/O. Replaying with a one-second pause before each bar close reproduced
-   the live median (4.8 ms against 4.46 ms) with no network involved.
+   the live median (4.8 ms against 4.46 ms, measured in a Linux VM on the same
+   MacBook) with no network involved.
 5. **Library overhead was the inference cost.** A one-row scikit-learn
    prediction took 0.5 to 0.6 ms, nearly all of it per-call overhead rather
-   than tree walking. Walking the same 150 trees as flat arrays takes 33 us and
-   matches scikit-learn on all 8,592 historical rows to 2e-15.
+   than tree walking. Walking the same 150 trees as flat arrays takes 31 us and
+   matches scikit-learn on all 8,592 historical rows to 2e-15. Waking from idle
+   still costs: the compiled path goes from 0.05 ms hot to 0.73 ms after a
+   one-second pause.
 
 ## Architecture
 

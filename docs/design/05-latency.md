@@ -70,10 +70,22 @@ ones to quote.
 
 Model inference fell from 643 us to 33 us at the median, about 20 times.
 
+## Results on the author's MacBook (macOS)
+
+| Replay | Inference | Scheduling class | n | p50 | p90 | p99 |
+| --- | --- | --- | --- | --- | --- | --- |
+| No idle | scikit-learn | interactive | 1,518 | 0.539 ms | 0.581 ms | 0.711 ms |
+| No idle | compiled | interactive | 1,518 | 0.051 ms | 0.067 ms | 0.098 ms |
+| 1 s idle | compiled | default | 120 | 0.802 ms | 1.086 ms | 3.011 ms |
+| 1 s idle | compiled | interactive | 120 | 0.730 ms | 1.080 ms | 1.676 ms |
+
+The scheduling-class request did not show a clear effect: 9% lower median,
+same p90, one run each. It stays as a harmless default and is not credited.
+
 ## What is left
 
-With compiled inference, the idle-replay median is still about 19 times the
-hot one. The remainder is parsing (170 us) and features (370 us), code that is
+With compiled inference, the idle-replay median on macOS is still about 15
+times the hot one (0.73 ms against 0.05 ms). The remainder is parsing (170 us) and features (370 us), code that is
 fast when warm and slow after a second of idling. Two options, neither built:
 
 - Keep the hot path warm: a timer that runs a dummy feature and model pass a

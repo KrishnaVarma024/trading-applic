@@ -159,16 +159,32 @@ operating system and scheduler, so these are indicative only.
 Compiled inference agrees with scikit-learn on all 8,592 historical rows of
 the real model to a worst relative difference of 2.0e-15.
 
-### macOS measurements (to run on the author's machine)
+### macOS measurements
 
-```
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --reference-model --out reports/bench_sklearn.json
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --out reports/bench_compiled.json
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --idle-ms 1000 --max-forecasts 120 --qos default --out reports/bench_idle_default.json
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --idle-ms 1000 --max-forecasts 120 --qos interactive --out reports/bench_idle_interactive.json
-uv run python -m tradingapp.live.forecast          # overnight, then Ctrl-C
-```
+Author's MacBook Pro, Apple silicon, macOS, Python 3.12.0, 2026-11-18.
+Raw output: `reports/bench_sklearn.json`, `reports/bench_compiled.json`,
+`reports/bench_idle_default.json`, `reports/bench_idle_interactive.json`.
 
-The two idle runs are the test of the scheduling-class change: if
-`interactive` is not faster than `default`, the change does nothing on this
-machine and should be removed.
+| Replay | Inference | Scheduling class | n | p50 | p90 | p99 | max |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| No idle | scikit-learn | interactive | 1,518 | 0.539 ms | 0.581 ms | 0.711 ms | 0.855 ms |
+| No idle | compiled | interactive | 1,518 | 0.051 ms | 0.067 ms | 0.098 ms | 0.130 ms |
+| 1 s idle before each bar close | compiled | default | 120 | 0.802 ms | 1.086 ms | 3.011 ms | 3.906 ms |
+| 1 s idle before each bar close | compiled | interactive | 120 | 0.730 ms | 1.080 ms | 1.676 ms | 1.982 ms |
+
+- Compiled inference: model stage 512 us to 31 us at the median, total 0.54 ms
+  to 0.05 ms. About ten times faster end to end.
+- The scikit-learn replay (0.54 ms) matches phase 4's (0.57 ms), so the setup
+  is comparable.
+- Idling still costs about fifteen times: 0.05 ms hot against 0.73 to 0.80 ms
+  after a one-second pause. The cost is spread over parsing, features and the
+  model, which is what cold caches and a slow-to-wake core would produce.
+- Scheduling class: the user-interactive request gave a 9% lower median and a
+  smaller worst case, but an identical p90. One run of 120 forecasts each, not
+  interleaved, so this does not separate the effect from run-to-run noise. It
+  is kept because it costs nothing, and it is not credited with any of the
+  improvement.
+
+### Live run with compiled inference
+
+Pending: `uv run python -m tradingapp.live.forecast` overnight, then Ctrl-C.
