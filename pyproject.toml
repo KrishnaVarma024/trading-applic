@@ -2,10 +2,12 @@
 name = "tradingapp"
 version = "0.1.0"
 description = "Live market-data pipeline: ticks -> bars -> realized-volatility forecast"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
+    "joblib>=1.6.0",
     "numpy>=2.2.6",
     "scikit-learn>=1.7.2",
+    "threadpoolctl>=3.8.0",
     "websockets>=15.0",
 ]
 

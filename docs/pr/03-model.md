@@ -14,10 +14,10 @@
 
 ## Result on the test period (4,415 hours, 2026-05-01 to 2026-10-31)
 
-- Against tuned EWMA: QLIKE down 25.6% (95% CI 22.4% to 29.2%).
-- Against log-HAR: down 11.8% (7.7% to 15.4%), DM p = 1e-10.
-- Against seasonal log-HAR: down 8.6% (5.4% to 11.8%).
-- Development period agreed: +10.1% over log-HAR.
+- Against tuned EWMA: QLIKE down 25.5% (95% CI 22.3% to 29.2%).
+- Against log-HAR: down 11.7% (7.7% to 15.3%), DM p = 6.6e-11.
+- Against seasonal log-HAR: down 8.5% (5.4% to 11.6%).
+- Development period agreed: +10.4% over log-HAR.
 
 ## The finding that matters
 
