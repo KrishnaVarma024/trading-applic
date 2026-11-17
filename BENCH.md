@@ -67,17 +67,77 @@ Reproduced on the author's MacBook Pro (Python 3.12, scikit-learn 1.9.1) on
 
 ## Phase 4: tick-to-forecast latency
 
-In-process only: raw message in hand to forecast value ready. Excludes network,
-exchange and socket handling. Numbers below must come from the author's machine.
+In-process only: from the raw message of the bar-closing trade being in the
+process to the forecast value existing. Excludes the network, the exchange,
+socket handling and writing the result anywhere.
+
+Machine: author's MacBook Pro, Apple silicon (arm64), macOS, Python 3.12.0,
+scikit-learn 1.9.1, inference pinned to one thread, garbage collector on.
+Raw output: `reports/latency_bench.json`, `reports/latency_live.json`.
 
 ### Replay benchmark
 
 Command: `uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv`
+82,704 recorded trades in 2 sessions, 1-second bars, 1,518 timed forecasts
+after 200 warm-up forecasts were discarded.
 
-(paste the table the command prints, and the line above it)
+| Stage | n | p50 | p90 | p99 | p99.9 | max |
+| --- | --- | --- | --- | --- | --- | --- |
+| total | 1,518 | 567.3 | 614.9 | 933.3 | 1800.5 | 2394.0 |
+| parse | 1,518 | 2.6 | 3.5 | 9.3 | 32.0 | 83.7 |
+| bar | 1,518 | 1.8 | 3.4 | 6.1 | 9.8 | 11.3 |
+| features | 1,518 | 18.3 | 35.2 | 69.0 | 101.0 | 219.1 |
+| model | 1,518 | 538.5 | 584.6 | 881.8 | 1676.2 | 2314.0 |
+
+Microseconds. Model inference is 95% of the median total.
 
 ### Live run
 
-Command: `uv run python -m tradingapp.live.forecast`, stopped with Ctrl-C after at least an hour.
+Command: `uv run python -m tradingapp.live.forecast`, stopped with Ctrl-C.
+2026-11-16, 19:05 to 21:20 UTC, 2 h 15 min. 136 forecasts, 0 disconnects,
+0 missed trades, 0 engine resets, 0 degraded forecasts, 137 contiguous bars
+with none empty. Start-up backfill of 10,081 klines took 9.4 s.
 
-(paste the table printed on exit, the run duration, and the number of forecasts)
+| Stage | n | p50 | p90 | p99 | p99.9 | max |
+| --- | --- | --- | --- | --- | --- | --- |
+| total | 136 | 4456.8 | 9103.6 | 25812.3 | 33426.5 | 34494.4 |
+| parse | 136 | 108.7 | 161.5 | 927.7 | 6379.6 | 7184.9 |
+| bar | 136 | 39.8 | 106.0 | 200.6 | 283.4 | 294.2 |
+| features | 136 | 356.9 | 1340.1 | 9558.2 | 10854.0 | 10975.1 |
+| model | 136 | 3905.5 | 7159.1 | 14885.2 | 31437.4 | 33940.7 |
+
+Microseconds.
+
+- The worst value, 34.5 ms, is the first forecast after start, the first
+  inference call on a freshly loaded model. Excluding it the worst is 26.6 ms.
+- 11 of 136 forecasts took over 10 ms; 4 took over 20 ms, the first included.
+- With 136 samples the p99 and p99.9 columns are interpolations between the
+  two or three largest values, not stable statistics. Quote the median and the
+  count above a threshold instead, or run much longer.
+
+### Live is about eight times slower than replay, in every stage
+
+| Stage | Replay p50 | Live p50 | Ratio |
+| --- | --- | --- | --- |
+| parse | 2.6 | 108.7 | 42x |
+| bar | 1.8 | 39.8 | 22x |
+| features | 18.3 | 356.9 | 20x |
+| model | 538.5 | 3905.5 | 7x |
+| total | 567.3 | 4456.8 | 7.9x |
+
+The parse and bar code is identical in both runs and does no I/O, yet it
+slowed down most. When code that did not change runs slower, the likeliest
+cause is the machine running it slower, not the code.
+
+Probable cause, not yet confirmed: live, the process is nearly idle (a trade
+every 30 ms or so, a forecast once a minute). macOS tends to keep such a
+process on efficiency cores at a low clock, and its caches go cold between
+bars. The replay keeps one core busy, so it runs on a performance core at full
+speed with warm caches. Cold caches hurt short code paths the most, which fits
+the cheap stages slowing down 20 to 40 times and the model only 7.
+
+Not controlled: other applications running on the Mac during the live run.
+
+How to confirm: replay the same ticks with an idle pause of about a second
+before each bar-closing trade. If replay latency rises to the live figure, the
+cause is idle-state behaviour, not the live network code.

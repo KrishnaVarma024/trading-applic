@@ -24,10 +24,25 @@
 - Single-row inference equals batch inference.
 - The REST backfill was run against the real endpoint: 10,081 gap-free klines.
 
-## What was not verified
+## Live run on the author's machine
 
-The live program end to end. In the build environment the stream connected
-but delivered nothing. The first complete live run is recorded in `BENCH.md`.
+2 h 15 min against the BTCUSDT stream: 136 forecasts, 0 disconnects, 0 missed
+trades, 0 resets, 0 degraded forecasts. Start-up backfill took 9.4 s.
+
+| Run | Forecasts | p50 | Worst |
+| --- | --- | --- | --- |
+| Replay benchmark | 1,518 | 0.57 ms | 2.4 ms |
+| Live | 136 | 4.5 ms | 34.5 ms (first call) |
+
+Live is about eight times slower than replay in every stage, including parsing
+and bar building, which do no I/O. Probable cause: the idle process runs on
+efficiency cores with cold caches. Not yet confirmed. Details in `BENCH.md`.
+
+## Not verified
+
+- Whether live forecasts are accurate. Two hours of overlapping forecasts is
+  about two independent observations.
+- A stable 99th percentile for live latency. That needs a much longer run.
 
 ## Findings
 

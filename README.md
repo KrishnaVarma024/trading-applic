@@ -450,7 +450,14 @@ Two ways to measure it:
   `reports/latency_live.json` on exit. An hour gives 60 samples, which is
   enough for a median and not for a 99th percentile.
 
-Results from the author's machine are in `BENCH.md`.
+Measured on the author's MacBook Pro (details in `BENCH.md`):
+
+| Run | Forecasts | p50 | Worst | Over 10 ms |
+| --- | --- | --- | --- | --- |
+| Replay benchmark | 1,518 | 0.57 ms | 2.4 ms | 0 |
+| Live, 2 h 15 min | 136 | 4.5 ms | 34.5 ms (first call); 26.6 ms after | 11 |
+
+The live run had no disconnects, missed trades, resets or degraded forecasts.
 
 ## What the measurements showed while building
 
@@ -503,10 +510,10 @@ check that the model still works.
 
 ## Known limits of phase 4
 
-- The live program was not run end to end in the build environment: the
-  stream connected there but delivered no data. Every piece is tested, and the
-  REST backfill was run against the real endpoint, but the first full live run
-  is the author's.
+- Live latency is about eight times the replay figure, in every stage. The
+  probable cause is the process idling between bars; it is not confirmed.
+- The live run was 2 h 15 min, 136 forecasts: enough for a median, not for a
+  99th percentile.
 - The model was trained on forecasts made on the hour. Live forecasts are made
   every minute, with windows that end mid-hour. The features are defined the
   same way, but accuracy at off-hour origins has not been evaluated.
