@@ -1,0 +1,58 @@
+{
+  "context": {
+    "mode": "replay",
+    "messages": 82704,
+    "sessions": 2,
+    "forecasts": 120,
+    "interval_ms": 1000,
+    "gc_disabled": false,
+    "single_thread": true,
+    "idle_ms": 1000.0,
+    "qos": "user-interactive",
+    "inference": "compiled",
+    "machine": "Darwin arm64",
+    "python": "3.12.0"
+  },
+  "latency_us": {
+    "total": {
+      "n": 120,
+      "p50": 729.5,
+      "p90": 1080.2,
+      "p99": 1676.4,
+      "p99.9": 1949.5,
+      "max": 1981.9
+    },
+    "parse": {
+      "n": 120,
+      "p50": 148.5,
+      "p90": 224.4,
+      "p99": 782.7,
+      "p99.9": 1149.3,
+      "max": 1187.0
+    },
+    "bar": {
+      "n": 120,
+      "p50": 31.6,
+      "p90": 57.6,
+      "p99": 88.5,
+      "p99.9": 100.5,
+      "max": 101.8
+    },
+    "features": {
+      "n": 120,
+      "p50": 278.0,
+      "p90": 463.2,
+      "p99": 720.4,
+      "p99.9": 761.2,
+      "max": 766.7
+    },
+    "model": {
+      "n": 120,
+      "p50": 245.1,
+      "p90": 376.2,
+      "p99": 907.1,
+      "p99.9": 1032.8,
+      "max": 1042.2
+    }
+  }
+}

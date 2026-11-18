@@ -159,16 +159,57 @@ operating system and scheduler, so these are indicative only.
 Compiled inference agrees with scikit-learn on all 8,592 historical rows of
 the real model to a worst relative difference of 2.0e-15.
 
-### macOS measurements (to run on the author's machine)
+### macOS measurements
 
-```
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --reference-model --out reports/bench_sklearn.json
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --out reports/bench_compiled.json
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --idle-ms 1000 --max-forecasts 120 --qos default --out reports/bench_idle_default.json
-uv run python -m tradingapp.live.bench data/btcusdt-ticks-*.csv --idle-ms 1000 --max-forecasts 120 --qos interactive --out reports/bench_idle_interactive.json
-uv run python -m tradingapp.live.forecast          # overnight, then Ctrl-C
-```
+Author's MacBook Pro, Apple silicon, macOS, Python 3.12.0, 2026-11-18.
+Raw output: `reports/bench_sklearn.json`, `reports/bench_compiled.json`,
+`reports/bench_idle_default.json`, `reports/bench_idle_interactive.json`.
 
-The two idle runs are the test of the scheduling-class change: if
-`interactive` is not faster than `default`, the change does nothing on this
-machine and should be removed.
+| Replay | Inference | Scheduling class | n | p50 | p90 | p99 | max |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| No idle | scikit-learn | interactive | 1,518 | 0.539 ms | 0.581 ms | 0.711 ms | 0.855 ms |
+| No idle | compiled | interactive | 1,518 | 0.051 ms | 0.067 ms | 0.098 ms | 0.130 ms |
+| 1 s idle before each bar close | compiled | default | 120 | 0.802 ms | 1.086 ms | 3.011 ms | 3.906 ms |
+| 1 s idle before each bar close | compiled | interactive | 120 | 0.730 ms | 1.080 ms | 1.676 ms | 1.982 ms |
+
+- Compiled inference: model stage 512 us to 31 us at the median, total 0.54 ms
+  to 0.05 ms. About ten times faster end to end.
+- The scikit-learn replay (0.54 ms) matches phase 4's (0.57 ms), so the setup
+  is comparable.
+- Idling still costs about fifteen times: 0.05 ms hot against 0.73 to 0.80 ms
+  after a one-second pause. The cost is spread over parsing, features and the
+  model, which is what cold caches and a slow-to-wake core would produce.
+- Scheduling class: the user-interactive request gave a 9% lower median and a
+  smaller worst case, but an identical p90. One run of 120 forecasts each, not
+  interleaved, so this does not separate the effect from run-to-run noise. It
+  is kept because it costs nothing, and it is not credited with any of the
+  improvement.
+
+### Live run with compiled inference
+
+`caffeinate -i uv run python -m tradingapp.live.forecast`, stopped with Ctrl-C.
+2026-11-17 19:49 to 2026-11-18 02:26 UTC, 6 h 37 min. 398 forecasts, 0
+disconnects, 0 missed trades, 0 engine resets, 0 degraded forecasts.
+Raw output: `reports/latency_live_compiled.json`.
+
+| Stage | n | p50 | p90 | p99 | p99.9 | max |
+| --- | --- | --- | --- | --- | --- | --- |
+| total | 398 | 789.5 | 2172.0 | 9141.2 | 37012.9 | 39018.3 |
+| parse | 398 | 98.6 | 154.3 | 287.8 | 1016.8 | 1400.9 |
+| bar | 398 | 31.9 | 91.0 | 244.2 | 700.7 | 790.7 |
+| features | 398 | 335.6 | 1349.0 | 6231.2 | 23082.4 | 26813.7 |
+| model | 398 | 301.5 | 602.0 | 2397.0 | 24301.0 | 32381.0 |
+
+Microseconds.
+
+- Against the phase 4 live run (scikit-learn, 136 forecasts): median 4.46 ms to
+  0.79 ms, worst 34.5 ms to 39.0 ms.
+- 52 of 398 forecasts took over 2 ms, 10 over 5 ms, 4 over 10 ms, 2 over 20 ms.
+  With 398 samples the p99 rests on the four or five slowest values.
+- Three of the four slowest came in one four-minute stretch (21:41 to 21:44
+  UTC: 39.0, 34.0 and 11.0 ms). The cause is not known.
+- The hourly median was 1.0 to 1.6 ms until 23:00 UTC and 0.6 to 0.8 ms after.
+  Whether the earlier hours were slower because the market was busier or
+  because the Mac was still in use is not separated.
+- The live median (0.79 ms) sits close to the idle replay (0.73 ms), which
+  supports using the idle replay as a stand-in for live latency.
