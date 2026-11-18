@@ -47,9 +47,20 @@ idling between bars, not the live code path.
 
 The scheduling-class request showed no clear effect and is not credited.
 
+## Live overnight on the author's MacBook
+
+398 forecasts over 6 h 37 min, no disconnects, gaps or resets.
+
+| Live run | Inference | n | p50 | p90 | p99 |
+| --- | --- | --- | --- | --- | --- |
+| Phase 4 | scikit-learn | 136 | 4.46 ms | 9.10 ms | too few samples |
+| Phase 5 | compiled | 398 | 0.79 ms | 2.17 ms | 9.1 ms |
+
 ## Not verified
 
-- A live tail latency with compiled inference. Needs an overnight run.
+- The cause of the slowest forecasts: three of the four slowest came in one
+  four-minute stretch.
+- Live forecast accuracy, which needs weeks of forecasts.
 
 ## Review checklist
 

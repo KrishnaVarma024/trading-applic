@@ -82,6 +82,21 @@ Model inference fell from 643 us to 33 us at the median, about 20 times.
 The scheduling-class request did not show a clear effect: 9% lower median,
 same p90, one run each. It stays as a harmless default and is not credited.
 
+## Live, overnight, on the author's MacBook
+
+398 forecasts over 6 h 37 min, compiled inference, interactive scheduling
+class. No disconnects, missed trades, resets or degraded forecasts.
+
+| Live run | Inference | n | p50 | p90 | p99 | max |
+| --- | --- | --- | --- | --- | --- | --- |
+| Phase 4 | scikit-learn | 136 | 4.46 ms | 9.10 ms | * | 34.5 ms |
+| Phase 5, overnight | compiled | 398 | 0.79 ms | 2.17 ms | 9.1 ms | 39.0 ms |
+
+\* Too few samples. The median fell 5.6 times. The live median (0.79 ms)
+matches the idle replay (0.73 ms), so the idle replay is a usable stand-in
+for live latency. The tail did not improve: the worst value is about the same,
+and three of the four slowest came in one unexplained four-minute stretch.
+
 ## What is left
 
 With compiled inference, the idle-replay median on macOS is still about 15
@@ -95,6 +110,11 @@ fast when warm and slow after a second of idling. Two options, neither built:
 - Make features incremental: running sums instead of re-summing a week of bars
   on every close. Less memory touched, so fewer cold-cache misses. Needs care
   to keep train/serve parity within 1e-9.
+
+The tail is now the open problem. Features (p99 6.2 ms) and the model (p99
+2.4 ms) both have long tails live, which points at the operating system pausing
+the process rather than at any one stage. Finding out needs a timestamp of
+every pause, not just stage durations.
 
 ## The four production questions
 

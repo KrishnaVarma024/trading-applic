@@ -187,4 +187,29 @@ Raw output: `reports/bench_sklearn.json`, `reports/bench_compiled.json`,
 
 ### Live run with compiled inference
 
-Pending: `uv run python -m tradingapp.live.forecast` overnight, then Ctrl-C.
+`caffeinate -i uv run python -m tradingapp.live.forecast`, stopped with Ctrl-C.
+2026-11-17 19:49 to 2026-11-18 02:26 UTC, 6 h 37 min. 398 forecasts, 0
+disconnects, 0 missed trades, 0 engine resets, 0 degraded forecasts.
+Raw output: `reports/latency_live_compiled.json`.
+
+| Stage | n | p50 | p90 | p99 | p99.9 | max |
+| --- | --- | --- | --- | --- | --- | --- |
+| total | 398 | 789.5 | 2172.0 | 9141.2 | 37012.9 | 39018.3 |
+| parse | 398 | 98.6 | 154.3 | 287.8 | 1016.8 | 1400.9 |
+| bar | 398 | 31.9 | 91.0 | 244.2 | 700.7 | 790.7 |
+| features | 398 | 335.6 | 1349.0 | 6231.2 | 23082.4 | 26813.7 |
+| model | 398 | 301.5 | 602.0 | 2397.0 | 24301.0 | 32381.0 |
+
+Microseconds.
+
+- Against the phase 4 live run (scikit-learn, 136 forecasts): median 4.46 ms to
+  0.79 ms, worst 34.5 ms to 39.0 ms.
+- 52 of 398 forecasts took over 2 ms, 10 over 5 ms, 4 over 10 ms, 2 over 20 ms.
+  With 398 samples the p99 rests on the four or five slowest values.
+- Three of the four slowest came in one four-minute stretch (21:41 to 21:44
+  UTC: 39.0, 34.0 and 11.0 ms). The cause is not known.
+- The hourly median was 1.0 to 1.6 ms until 23:00 UTC and 0.6 to 0.8 ms after.
+  Whether the earlier hours were slower because the market was busier or
+  because the Mac was still in use is not separated.
+- The live median (0.79 ms) sits close to the idle replay (0.73 ms), which
+  supports using the idle replay as a stand-in for live latency.

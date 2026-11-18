@@ -40,16 +40,16 @@ network and the exchange.
 
 Measured on the author's MacBook Pro (Apple silicon, macOS):
 
-| Run | Inference | Forecasts | p50 | p90 |
-| --- | --- | --- | --- | --- |
-| Replay | scikit-learn | 1,518 | 0.54 ms | 0.58 ms |
-| Replay | compiled | 1,518 | 0.05 ms | 0.07 ms |
-| Replay, 1 s idle before each bar | compiled | 120 | 0.73 ms | 1.08 ms |
-| Live, 2 h 15 min | scikit-learn | 136 | 4.46 ms | 9.10 ms |
+| Run | Inference | Forecasts | p50 | p90 | p99 |
+| --- | --- | --- | --- | --- | --- |
+| Replay | scikit-learn | 1,518 | 0.54 ms | 0.58 ms | 0.71 ms |
+| Replay | compiled | 1,518 | 0.05 ms | 0.07 ms | 0.10 ms |
+| Replay, 1 s idle before each bar | compiled | 120 | 0.73 ms | 1.08 ms | * |
+| Live, 2 h 15 min | scikit-learn | 136 | 4.46 ms | 9.10 ms | * |
+| **Live, 6 h 37 min overnight** | **compiled** | **398** | **0.79 ms** | **2.17 ms** | **9.1 ms** |
 
-The live run had no disconnects, missed trades or engine resets. A live run
-with compiled inference is pending; the idle replay is the best estimate of it
-until then.
+\* Too few samples for a 99th percentile. Neither live run had a disconnect,
+missed trade or engine reset. Worst single forecast overnight: 39 ms.
 
 ## Findings
 
@@ -69,7 +69,8 @@ until then.
    stage ran 7 to 42 times slower than in replay, including parsing, which does
    no I/O. Replaying with a one-second pause before each bar close reproduced
    the live median (4.8 ms against 4.46 ms, measured in a Linux VM on the same
-   MacBook) with no network involved.
+   MacBook) with no network involved. After the fix, the overnight live median
+   was 0.79 ms against 0.73 ms for the idle replay.
 5. **Library overhead was the inference cost.** A one-row scikit-learn
    prediction took 0.5 to 0.6 ms, nearly all of it per-call overhead rather
    than tree walking. Walking the same 150 trees as flat arrays takes 31 us and
@@ -158,8 +159,9 @@ BREAKS.md         what broke, the root cause, and the fix
 - A lower QLIKE is not a trading profit. Nothing here tests a strategy or costs.
 - Live forecast accuracy is unmeasured. That needs weeks of forecasts scored
   against the variance that followed them.
-- Live latency has a median, not a tail: 136 samples cannot support a 99th
-  percentile. A run of several hundred forecasts is needed.
+- The live 99th percentile rests on 398 forecasts from one night on one
+  laptop, so on its four or five slowest values. A cluster of three slow
+  forecasts at 21:41 to 21:44 UTC is unexplained.
 - The model is trained once. There is no scheduled retraining or drift alarm.
 - Open question: hourly return signs reverse 52.3% of the time. Four candidate
   causes were tested and ruled out; the mechanism is unknown.
