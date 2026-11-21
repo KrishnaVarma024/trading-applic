@@ -80,7 +80,9 @@ than one sine wave, or interactions, and this phase does not separate the two.
 
 After the results above, a linear log-HAR with a separate term for each hour
 of the day (23 indicator variables plus the weekend flag) was scored on the
-same periods. It is not in the code; it is assignment 3 of this phase.
+same periods. It was first run as a one-off script (assignment 3 of this phase);
+it is now `uv run python -m tradingapp.research.ablation`, which also produces the
+ablation table above and the hour-of-day profile, and writes `reports/ablation.md`.
 
 | Test period | QLIKE | vs log-HAR |
 | --- | --- | --- |

@@ -54,7 +54,7 @@ turns it off so its effect can be measured.
   a worst relative difference of 2.0e-15.
 - The compiled form is rebuilt at load and never saved, so the model file
   format and its version checks are unchanged.
-- 64 tests in total.
+- 64 tests in total (67 after the ablation command was added).
 
 ## Results in the build VM
 

@@ -58,9 +58,11 @@ missed trade or engine reset. Worst single forecast overnight: 39 ms.
    with 24 hourly terms recovers about three quarters of their gain. What the
    trees add beyond it is about 3%: clear on the test period (0.5% to 5.9%),
    indistinguishable from zero on the development period.
+   ([reports/ablation.md](reports/ablation.md))
 2. **Volatility follows the US equity open.** The 14:00 and 15:00 UTC hours
    average more than twice the daily mean variance; weekends carry 46% of
    weekday variance. A market that never closes still keeps office hours.
+   ([reports/ablation.md](reports/ablation.md))
 3. **Fitting in logs is what beats EWMA.** HAR in levels is not significantly
    better than a tuned EWMA (5.1%, interval -2.1% to 12.4%); log-HAR is
    (15.5%). A few extreme hours dominate a least-squares fit in levels. The
@@ -125,11 +127,12 @@ Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
-uv run pytest -q                                          # 64 tests, a few seconds, no network
+uv run pytest -q                                          # 67 tests, a few seconds, no network
 
 uv run python -m tradingapp.research.download --symbol BTCUSDT --start 2025-11 --end 2026-10
 uv run python -m tradingapp.research.evaluate             # baselines, about 2 s
 uv run python -m tradingapp.research.evaluate_model       # model, development and test periods, about 30 s
+uv run python -m tradingapp.research.ablation             # where the gain comes from (findings 1, 2), about 2 min
 uv run python -m tradingapp.research.train                # writes models/har_gbm.joblib
 
 uv run python -m tradingapp live --save-ticks             # record live trades to data/
@@ -144,7 +147,7 @@ src/tradingapp/
     parse.py, ingest.py, bars.py, storage.py, pipeline.py    ticks to bars
     research/     archive download, features, models, walk-forward, metrics, evaluation
     live/         feature engine, compiled trees, backfill, hot path, benchmark
-tests/            64 tests
+tests/            67 tests
 docs/design/      one write-up per phase: design, results, the four production questions, limits
 docs/pr/          pull request descriptions
 reports/          raw evaluation and latency output
@@ -174,4 +177,5 @@ BREAKS.md         what broke, the root cause, and the fix
 | 2 | [#2](https://github.com/KrishnaVarma024/trading-applic/pull/2) | Archive data, baselines, walk-forward harness, QLIKE, leakage check | [02](docs/design/02-research-eval.md) |
 | 3 | [#3](https://github.com/KrishnaVarma024/trading-applic/pull/3) | log-HAR plus boosted trees, held-out test period, ablation | [03](docs/design/03-model.md) |
 | 4 | [#4](https://github.com/KrishnaVarma024/trading-applic/pull/4) | Live forecasting, train/serve parity, latency measurement | [04](docs/design/04-live-latency.md) |
-| 5 | #5 | Idle-latency diagnosis, compiled trees, warm-up, scheduling class | [05](docs/design/05-latency.md) |
+| 5 | [#5](https://github.com/KrishnaVarma024/trading-applic/pull/5), [#6](https://github.com/KrishnaVarma024/trading-applic/pull/6) | Idle-latency diagnosis, compiled trees, warm-up, scheduling class | [05](docs/design/05-latency.md) |
+| 6 | #7 | One command reproduces the ablation, hourly baseline and hour-of-day profile | [03](docs/design/03-model.md) |

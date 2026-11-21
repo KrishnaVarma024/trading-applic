@@ -1,0 +1,125 @@
+{
+  "symbol": "BTCUSDT",
+  "setup": {
+    "initial_train_days": 60,
+    "refit_every_hours": 24,
+    "test_start": "2026-05-01",
+    "generated_utc": "2026-11-21"
+  },
+  "ablation_dev": {
+    "none removed": {
+      "dev_qlike": 0.2839711612,
+      "vs_har_log": 0.1037417742
+    },
+    "time of day and weekend": {
+      "dev_qlike": 0.3208370574,
+      "vs_har_log": -0.01261286739
+    },
+    "volume and trade count": {
+      "dev_qlike": 0.2835323993,
+      "vs_har_log": 0.1051265769
+    },
+    "returns and semivariance": {
+      "dev_qlike": 0.2875594684,
+      "vs_har_log": 0.09241650498
+    },
+    "4-hour and 12-hour variance": {
+      "dev_qlike": 0.291379429,
+      "vs_har_log": 0.08036010096
+    }
+  },
+  "hourly_baseline": {
+    "development": {
+      "qlike": {
+        "har_log": 0.3168407866,
+        "har_log_hourly": 0.2888667785,
+        "har_gbm": 0.2839711612
+      },
+      "hourly_vs_har_log": {
+        "qlike_reduction": 0.08829042625,
+        "ci95": [
+          0.02891949381,
+          0.1397783308
+        ],
+        "dm_p": 0.001074281064
+      },
+      "gbm_vs_hourly": {
+        "qlike_reduction": 0.01694766451,
+        "ci95": [
+          -0.02059579254,
+          0.05555958728
+        ],
+        "dm_p": 0.3920655146
+      },
+      "gbm_vs_har_log": {
+        "qlike_reduction": 0.1037417742,
+        "ci95": [
+          0.03846861993,
+          0.1603184874
+        ],
+        "dm_p": 0.0004348845056
+      }
+    },
+    "test": {
+      "qlike": {
+        "har_log": 0.3240524535,
+        "har_log_hourly": 0.2958676041,
+        "har_gbm": 0.2861829743
+      },
+      "hourly_vs_har_log": {
+        "qlike_reduction": 0.08697619491,
+        "ci95": [
+          0.05614066135,
+          0.1212119468
+        ],
+        "dm_p": 1.845411216e-08
+      },
+      "gbm_vs_hourly": {
+        "qlike_reduction": 0.032732985,
+        "ci95": [
+          0.004746565357,
+          0.05895261307
+        ],
+        "dm_p": 0.01634395091
+      },
+      "gbm_vs_har_log": {
+        "qlike_reduction": 0.1168621894,
+        "ci95": [
+          0.07723056927,
+          0.152789615
+        ],
+        "dm_p": 6.5706038e-11
+      }
+    }
+  },
+  "hour_profile": {
+    "multiple_of_mean_by_utc_hour": [
+      1.060861889,
+      1.114790235,
+      0.8782253254,
+      0.6779233572,
+      0.5914834006,
+      0.6407539278,
+      0.5920931067,
+      0.6573698505,
+      0.7148399438,
+      0.6449439518,
+      0.528985031,
+      0.6504553532,
+      0.9383439813,
+      1.421314029,
+      2.240402432,
+      2.156698948,
+      1.463436563,
+      1.237458421,
+      1.262229052,
+      0.9354916166,
+      0.9298444423,
+      0.8223781073,
+      1.056289125,
+      0.783387908
+    ],
+    "peak_hour_utc": 14,
+    "weekend_over_weekday": 0.4586131387
+  }
+}
